@@ -242,38 +242,63 @@ function renderAllEntries(entries) {
   });
 }
 
-function formatDateDisplay(datetime) {
-  if (!datetime) return '';
+function formatDateDisplay(dateObj) {
+  if (!dateObj) return '';
 
   try {
-    // Handle both date-only and datetime strings
-    let d;
-    let hasTime = false;
+    // dateObj is { start, end } or a plain string (legacy)
+    const startStr = typeof dateObj === 'string' ? dateObj : dateObj.start;
+    const endStr = typeof dateObj === 'string' ? null : dateObj.end;
 
-    if (datetime.includes('T')) {
-      d = new Date(datetime);
-      hasTime = true;
-    } else {
-      const [year, month, day] = datetime.split('-').map(Number);
-      d = new Date(year, month - 1, day);
+    const display = formatSingleDate(startStr);
+    if (!display) return startStr;
+
+    if (endStr) {
+      const endDisplay = formatSingleDate(endStr, startStr);
+      return display + ` <span style="opacity:0.5">→</span> ${endDisplay}`;
     }
 
-    if (isNaN(d.getTime())) return datetime;
-
-    const dayName = d.toLocaleDateString('de-DE', { weekday: 'long' });
-    const formatted = d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    let display = `<span style="font-weight:600">${dayName}</span>, ${formatted}`;
-
-    if (hasTime) {
-      const timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-      display += ` <span style="opacity:0.5">·</span> <span style="font-weight:600">${timeStr} Uhr</span>`;
-    }
-
-    display += `<br/><span style="font-size:0.7rem; opacity:0.35; font-family:monospace">${datetime}</span>`;
     return display;
   } catch {
-    return datetime;
+    return JSON.stringify(dateObj);
   }
+}
+
+function formatSingleDate(datetime, referenceDate) {
+  if (!datetime) return '';
+
+  let d;
+  let hasTime = false;
+
+  if (datetime.includes('T')) {
+    d = new Date(datetime);
+    hasTime = true;
+  } else {
+    const [year, month, day] = datetime.split('-').map(Number);
+    d = new Date(year, month - 1, day);
+  }
+
+  if (isNaN(d.getTime())) return datetime;
+
+  // If referenceDate exists and same day, only show time
+  if (referenceDate && hasTime) {
+    const refDate = new Date(referenceDate);
+    if (d.toDateString() === refDate.toDateString()) {
+      const timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+      return `<span style="font-weight:600">${timeStr} Uhr</span>`;
+    }
+  }
+
+  const dayName = d.toLocaleDateString('de-DE', { weekday: 'long' });
+  const formatted = d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+  let display = `<span style="font-weight:600">${dayName}</span>, ${formatted}`;
+
+  if (hasTime) {
+    const timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    display += ` <span style="opacity:0.5">·</span> <span style="font-weight:600">${timeStr} Uhr</span>`;
+  }
+
+  return display;
 }
 
 // ---- Send to Notion ----

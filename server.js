@@ -42,7 +42,11 @@ WICHTIG: Der Text kann EINE oder MEHRERE Aufgaben enthalten. Erkenne alle einzel
 Analysiere den folgenden Text und extrahiere für JEDE erkannte Aufgabe die Informationen für diese Datenbankfelder:
 
 1. **Aufgaben Name**: Ein kurzer, prägnanter Titel (max. 5-7 Wörter)
-2. **Fälligkeitsdatum**: Erkenne relative Zeitangaben (morgen, nächsten Dienstag, etc.) und wandle sie in ISO 8601 Format um (YYYY-MM-DDTHH:MM:SS). Falls keine Uhrzeit erkannt wird, gib nur das Datum (YYYY-MM-DD). Falls kein Datum erkennbar ist, setze null.
+2. **Fälligkeitsdatum**: Erkenne relative Zeitangaben (morgen, nächsten Dienstag, etc.) und wandle sie in ISO 8601 Format um (YYYY-MM-DDTHH:MM:SS). Falls keine Uhrzeit erkannt wird, gib nur das Datum (YYYY-MM-DD). Falls kein Datum erkennbar ist, setze null. Falls ein Zeitraum erkannt wird (z.B. "von 9 bis 17:30 Uhr"), gib sowohl "start" als auch "end" an.
+   - Nur Startzeit: faelligkeitsdatum: { "start": "YYYY-MM-DDTHH:MM:SS" }
+   - Zeitraum: faelligkeitsdatum: { "start": "YYYY-MM-DDTHH:MM:SS", "end": "YYYY-MM-DDTHH:MM:SS" }
+   - Nur Datum: faelligkeitsdatum: { "start": "YYYY-MM-DD" }
+   - Nicht erkennbar: faelligkeitsdatum: null
 3. **Beschreibung**: Formuliere den Inhalt dieser Aufgabe als sauberen, professionellen Fließtext um. Behebe Grammatikfehler, fülle logische Lücken sinnvoll auf.
 4. **Priorität**: Bewerte die Dringlichkeit. Erlaubte Werte: "Hoch", "Mittel", "Niedrig". Falls nicht klar, setze "Mittel".
 5. **Aufwand**: Schätze den Zeitaufwand. Erlaubte Werte: "Wenig", "Mittel", "Hoch". Falls nicht klar, setze "Mittel".
@@ -53,7 +57,7 @@ Gib IMMER ein Array zurück — auch wenn es nur eine Aufgabe ist:
 [
   {
     "aufgabenName": "string",
-    "faelligkeitsdatum": "string oder null",
+    "faelligkeitsdatum": { "start": "string", "end": "string oder null" } | null,
     "beschreibung": "string",
     "prioritaet": "Hoch|Mittel|Niedrig",
     "aufwand": "Wenig|Mittel|Hoch",
@@ -117,9 +121,19 @@ app.post('/api/process', async (req, res) => {
 
     // Validate each entry
     const entries = items.map(structured => {
+      // Normalize date: accept both old string format and new {start, end} object
+      let dateParsed = null;
+      if (structured.faelligkeitsdatum) {
+        if (typeof structured.faelligkeitsdatum === 'string') {
+          dateParsed = { start: structured.faelligkeitsdatum, end: null };
+        } else if (structured.faelligkeitsdatum.start) {
+          dateParsed = { start: structured.faelligkeitsdatum.start, end: structured.faelligkeitsdatum.end || null };
+        }
+      }
+
       const validated = {
         aufgabenName: structured.aufgabenName || 'Neue Aufgabe',
-        faelligkeitsdatum: structured.faelligkeitsdatum || null,
+        faelligkeitsdatum: dateParsed,
         beschreibung: structured.beschreibung || '',
         prioritaet: ['Hoch', 'Mittel', 'Niedrig'].includes(structured.prioritaet) ? structured.prioritaet : 'Mittel',
         aufwand: ['Wenig', 'Mittel', 'Hoch'].includes(structured.aufwand) ? structured.aufwand : 'Mittel',
@@ -180,9 +194,11 @@ app.post('/api/notion/create', async (req, res) => {
       };
 
       if (entry.faelligkeitsdatum) {
-        properties['Fälligkeitsdatum'] = {
-          date: { start: entry.faelligkeitsdatum }
-        };
+        const dateObj = { start: entry.faelligkeitsdatum.start };
+        if (entry.faelligkeitsdatum.end) {
+          dateObj.end = entry.faelligkeitsdatum.end;
+        }
+        properties['Fälligkeitsdatum'] = { date: dateObj };
       }
 
       const notionResponse = await notion.pages.create({
