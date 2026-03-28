@@ -106,73 +106,41 @@
         </section>
 
         <!-- Output Section -->
-        <section class="card card--output hidden" id="output-section">
-          <div class="card__header">
-            <h2 class="card__title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-              KI-Ergebnis
-            </h2>
-          </div>
-
-          <div class="output-content" id="output-content">
-            <!-- Title -->
-            <div class="output-field">
-              <label class="output-field__label">Aufgaben Name</label>
-              <div class="output-field__value output-field__value--title" id="output-title"></div>
+        <section class="hidden" id="output-section">
+          <div class="card card--output">
+            <div class="card__header">
+              <h2 class="card__title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                KI-Ergebnis
+              </h2>
+              <span class="task-count-badge hidden" id="task-count-badge"></span>
             </div>
 
-            <!-- Date & Time -->
-            <div class="output-field">
-              <label class="output-field__label">Fälligkeitsdatum</label>
-              <div class="output-field__value" id="output-datetime"></div>
-            </div>
+            <!-- Task cards rendered dynamically -->
+            <div class="output-tasks" id="output-tasks"></div>
 
-            <!-- Description -->
-            <div class="output-field">
-              <label class="output-field__label">Beschreibung</label>
-              <div class="output-field__value output-field__value--desc" id="output-description"></div>
+            <!-- Action Buttons -->
+            <div class="output-buttons">
+              <button class="send-btn" id="btn-send-notion">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                <span id="send-btn-text">An Notion senden</span>
+              </button>
+              <button class="new-entry-btn" id="btn-new-entry">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Neuer Eintrag
+              </button>
             </div>
-
-            <!-- Priority + Effort row -->
-            <div class="output-row">
-              <div class="output-field output-field--half">
-                <label class="output-field__label">Priorität</label>
-                <div class="output-field__value" id="output-priority"></div>
-              </div>
-              <div class="output-field output-field--half">
-                <label class="output-field__label">Aufwand</label>
-                <div class="output-field__value" id="output-effort"></div>
-              </div>
-            </div>
-
-            <!-- Tags -->
-            <div class="output-field">
-              <label class="output-field__label">Aufgaben Typ</label>
-              <div class="output-field__value output-field__value--tags" id="output-tags"></div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="output-buttons">
-            <button class="send-btn" id="btn-send-notion">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-              <span id="send-btn-text">An Notion senden</span>
-            </button>
-            <button class="new-entry-btn" id="btn-new-entry">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Neuer Eintrag
-            </button>
           </div>
         </section>
 
@@ -185,16 +153,9 @@
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </div>
-            <h3 class="success-title">Aufgabe erstellt! ✨</h3>
+            <h3 class="success-title" id="success-title">Aufgabe erstellt! ✨</h3>
             <p class="success-message" id="success-message">Dein Eintrag wurde erfolgreich in Notion gespeichert.</p>
-            <a class="success-link" id="success-link" href="#" target="_blank" rel="noopener">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/>
-                <line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-              In Notion öffnen
-            </a>
+            <div class="success-links" id="success-links"></div>
             <button class="new-entry-btn" id="btn-new-entry-success" style="margin-top:16px; width:100%;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
