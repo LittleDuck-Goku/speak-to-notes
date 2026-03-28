@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Speak to Notes — Sprache zu Notion-Aufgaben</title>
+    <meta name="description" content="Verwandle Sprach- und Texteingaben in strukturierte Notion-Aufgaben. KI-gestützt mit deutscher Spracherkennung." />
+    <meta name="theme-color" content="#0a0a1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Animated background blobs -->
+      <div class="bg-blob bg-blob--1"></div>
+      <div class="bg-blob bg-blob--2"></div>
+      <div class="bg-blob bg-blob--3"></div>
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header__brand">
+          <div class="header__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <h1 class="header__title">Speak to Notes</h1>
+        </div>
+        <p class="header__subtitle">Sprache & Text → Notion-Aufgaben</p>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main">
+        <!-- Input Section -->
+        <section class="card card--input" id="input-section">
+          <div class="card__header">
+            <h2 class="card__title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Eingabe
+            </h2>
+            <div class="input-toggle" id="input-toggle">
+              <button class="input-toggle__btn input-toggle__btn--active" data-mode="voice" id="btn-voice-mode">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+                Sprache
+              </button>
+              <button class="input-toggle__btn" data-mode="text" id="btn-text-mode">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="4 7 4 4 20 4 20 7"/>
+                  <line x1="9" y1="20" x2="15" y2="20"/>
+                  <line x1="12" y1="4" x2="12" y2="20"/>
+                </svg>
+                Text
+              </button>
+            </div>
+          </div>
+
+          <!-- Voice Input -->
+          <div class="input-area input-area--voice" id="voice-input-area">
+            <div class="mic-container" id="mic-container">
+              <div class="mic-ripple" id="mic-ripple"></div>
+              <button class="mic-btn" id="mic-btn" aria-label="Aufnahme starten">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </button>
+            </div>
+            <p class="mic-label" id="mic-label">Klicke zum Aufnehmen</p>
+            <div class="transcript-preview" id="transcript-preview">
+              <p class="transcript-preview__text" id="transcript-text"></p>
+            </div>
+          </div>
+
+          <!-- Text Input -->
+          <div class="input-area input-area--text hidden" id="text-input-area">
+            <textarea
+              class="text-input"
+              id="text-input"
+              placeholder="Schreibe oder füge deinen Text hier ein...&#10;&#10;Beispiel: &quot;Meeting mit dem Team morgen um 14 Uhr, wir besprechen das neue Projekt&quot;"
+              rows="5"
+            ></textarea>
+          </div>
+
+          <!-- Process Button -->
+          <button class="process-btn" id="process-btn" disabled>
+            <svg class="process-btn__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span class="process-btn__text">Mit KI verarbeiten</span>
+          </button>
+        </section>
+
+        <!-- Output Section -->
+        <section class="card card--output hidden" id="output-section">
+          <div class="card__header">
+            <h2 class="card__title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              KI-Ergebnis
+            </h2>
+          </div>
+
+          <div class="output-content" id="output-content">
+            <!-- Title -->
+            <div class="output-field">
+              <label class="output-field__label">Aufgaben Name</label>
+              <div class="output-field__value output-field__value--title" id="output-title"></div>
+            </div>
+
+            <!-- Date & Time -->
+            <div class="output-field">
+              <label class="output-field__label">Fälligkeitsdatum</label>
+              <div class="output-field__value" id="output-datetime"></div>
+            </div>
+
+            <!-- Description -->
+            <div class="output-field">
+              <label class="output-field__label">Beschreibung</label>
+              <div class="output-field__value output-field__value--desc" id="output-description"></div>
+            </div>
+
+            <!-- Priority + Effort row -->
+            <div class="output-row">
+              <div class="output-field output-field--half">
+                <label class="output-field__label">Priorität</label>
+                <div class="output-field__value" id="output-priority"></div>
+              </div>
+              <div class="output-field output-field--half">
+                <label class="output-field__label">Aufwand</label>
+                <div class="output-field__value" id="output-effort"></div>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="output-field">
+              <label class="output-field__label">Aufgaben Typ</label>
+              <div class="output-field__value output-field__value--tags" id="output-tags"></div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="output-buttons">
+            <button class="send-btn" id="btn-send-notion">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              <span id="send-btn-text">An Notion senden</span>
+            </button>
+            <button class="new-entry-btn" id="btn-new-entry">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Neuer Eintrag
+            </button>
+          </div>
+        </section>
+
+        <!-- Success Section -->
+        <section class="card card--success hidden" id="success-section">
+          <div class="success-content">
+            <div class="success-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <h3 class="success-title">Aufgabe erstellt! ✨</h3>
+            <p class="success-message" id="success-message">Dein Eintrag wurde erfolgreich in Notion gespeichert.</p>
+            <a class="success-link" id="success-link" href="#" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              In Notion öffnen
+            </a>
+            <button class="new-entry-btn" id="btn-new-entry-success" style="margin-top:16px; width:100%;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Neuen Eintrag erstellen
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <!-- Toast Notification -->
+      <div class="toast hidden" id="toast">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span id="toast-message">Kopiert!</span>
+      </div>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p>Speak to Notes &mdash; Powered by Gemini AI & Notion</p>
+      </footer>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
