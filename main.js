@@ -8,7 +8,7 @@ import { SpeechRecognizer } from './src/speechRecognition.js';
 // ---- State ----
 let currentMode = 'voice';
 let transcriptBuffer = '';
-let currentEntry = null;
+let currentEntries = [];
 
 // ---- DOM Elements ----
 const btnVoiceMode = document.getElementById('btn-voice-mode');
@@ -31,19 +31,16 @@ const inputSection = document.getElementById('input-section');
 const outputSection = document.getElementById('output-section');
 const successSection = document.getElementById('success-section');
 
-const outputTitle = document.getElementById('output-title');
-const outputDatetime = document.getElementById('output-datetime');
-const outputDescription = document.getElementById('output-description');
-const outputPriority = document.getElementById('output-priority');
-const outputEffort = document.getElementById('output-effort');
-const outputTags = document.getElementById('output-tags');
+const outputTasks = document.getElementById('output-tasks');
+const taskCountBadge = document.getElementById('task-count-badge');
 
 const btnSendNotion = document.getElementById('btn-send-notion');
 const sendBtnText = document.getElementById('send-btn-text');
 const btnNewEntry = document.getElementById('btn-new-entry');
 const btnNewEntrySuccess = document.getElementById('btn-new-entry-success');
 
-const successLink = document.getElementById('success-link');
+const successTitle = document.getElementById('success-title');
+const successLinks = document.getElementById('success-links');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toast-message');
 
@@ -153,8 +150,8 @@ processBtn.addEventListener('click', async () => {
       throw new Error(data.error || 'Unbekannter Fehler');
     }
 
-    currentEntry = data.entry;
-    renderOutput(currentEntry);
+    currentEntries = data.entries;
+    renderAllEntries(currentEntries);
 
     // Show output section
     outputSection.classList.remove('hidden');
@@ -173,40 +170,76 @@ processBtn.addEventListener('click', async () => {
 });
 
 // ---- Render Output ----
-function renderOutput(entry) {
-  // Title
-  outputTitle.textContent = entry.aufgabenName || 'Neue Aufgabe';
+function renderAllEntries(entries) {
+  outputTasks.innerHTML = '';
 
-  // Date
-  if (entry.faelligkeitsdatum) {
-    outputDatetime.innerHTML = formatDateDisplay(entry.faelligkeitsdatum);
-    outputDatetime.classList.remove('output-field__not-specified');
+  // Show/hide task count badge
+  if (entries.length > 1) {
+    taskCountBadge.textContent = `${entries.length} Aufgaben erkannt`;
+    taskCountBadge.classList.remove('hidden');
+    sendBtnText.textContent = `Alle ${entries.length} an Notion senden`;
   } else {
-    outputDatetime.textContent = 'Nicht angegeben';
-    outputDatetime.classList.add('output-field__not-specified');
+    taskCountBadge.classList.add('hidden');
+    sendBtnText.textContent = 'An Notion senden';
   }
 
-  // Description
-  outputDescription.textContent = entry.beschreibung || 'Keine Beschreibung.';
+  entries.forEach((entry, index) => {
+    const card = document.createElement('div');
+    card.className = 'output-task-card';
+    if (entries.length > 1) card.style.animationDelay = `${index * 100}ms`;
 
-  // Priority
-  outputPriority.innerHTML = `<span class="badge badge--${entry.prioritaet.toLowerCase()}">${entry.prioritaet}</span>`;
+    // Build tags HTML
+    let tagsHtml = '';
+    if (entry.aufgabenTyp && entry.aufgabenTyp.length > 0) {
+      tagsHtml = entry.aufgabenTyp
+        .map(tag => `<span class="tag tag--${tag.toLowerCase()}">${tag}</span>`)
+        .join('');
+    } else {
+      tagsHtml = '<span class="output-field__not-specified">Keine Tags</span>';
+    }
 
-  // Effort
-  outputEffort.innerHTML = `<span class="badge badge--${entry.aufwand.toLowerCase()}">${entry.aufwand}</span>`;
+    // Build date HTML
+    let dateHtml;
+    if (entry.faelligkeitsdatum) {
+      dateHtml = formatDateDisplay(entry.faelligkeitsdatum);
+    } else {
+      dateHtml = '<span class="output-field__not-specified">Nicht angegeben</span>';
+    }
 
-  // Tags
-  outputTags.innerHTML = '';
-  if (entry.aufgabenTyp && entry.aufgabenTyp.length > 0) {
-    entry.aufgabenTyp.forEach(tag => {
-      const el = document.createElement('span');
-      el.className = `tag tag--${tag.toLowerCase()}`;
-      el.textContent = tag;
-      outputTags.appendChild(el);
-    });
-  } else {
-    outputTags.innerHTML = '<span class="output-field__not-specified">Keine Tags</span>';
-  }
+    card.innerHTML = `
+      ${entries.length > 1 ? `<div class="output-task-card__number">${index + 1}</div>` : ''}
+      <div class="output-content">
+        <div class="output-field">
+          <label class="output-field__label">Aufgaben Name</label>
+          <div class="output-field__value output-field__value--title">${entry.aufgabenName || 'Neue Aufgabe'}</div>
+        </div>
+        <div class="output-field">
+          <label class="output-field__label">Fälligkeitsdatum</label>
+          <div class="output-field__value">${dateHtml}</div>
+        </div>
+        <div class="output-field">
+          <label class="output-field__label">Beschreibung</label>
+          <div class="output-field__value output-field__value--desc">${entry.beschreibung || 'Keine Beschreibung.'}</div>
+        </div>
+        <div class="output-row">
+          <div class="output-field output-field--half">
+            <label class="output-field__label">Priorität</label>
+            <div class="output-field__value"><span class="badge badge--${entry.prioritaet.toLowerCase()}">${entry.prioritaet}</span></div>
+          </div>
+          <div class="output-field output-field--half">
+            <label class="output-field__label">Aufwand</label>
+            <div class="output-field__value"><span class="badge badge--${entry.aufwand.toLowerCase()}">${entry.aufwand}</span></div>
+          </div>
+        </div>
+        <div class="output-field">
+          <label class="output-field__label">Aufgaben Typ</label>
+          <div class="output-field__value output-field__value--tags">${tagsHtml}</div>
+        </div>
+      </div>
+    `;
+
+    outputTasks.appendChild(card);
+  });
 }
 
 function formatDateDisplay(datetime) {
@@ -245,7 +278,7 @@ function formatDateDisplay(datetime) {
 
 // ---- Send to Notion ----
 btnSendNotion.addEventListener('click', async () => {
-  if (!currentEntry) return;
+  if (!currentEntries.length) return;
 
   btnSendNotion.disabled = true;
   btnSendNotion.classList.add('sending');
@@ -255,7 +288,7 @@ btnSendNotion.addEventListener('click', async () => {
     const response = await fetch('/api/notion/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entry: currentEntry })
+      body: JSON.stringify({ entries: currentEntries })
     });
 
     const data = await response.json();
@@ -271,28 +304,52 @@ btnSendNotion.addEventListener('click', async () => {
     successSection.offsetHeight;
     successSection.style.animation = '';
 
-    if (data.notionUrl) {
-      successLink.href = data.notionUrl;
-      successLink.style.display = '';
-    } else {
-      successLink.style.display = 'none';
-    }
+    const count = data.results.length;
+    successTitle.textContent = count > 1
+      ? `${count} Aufgaben erstellt! ✨`
+      : 'Aufgabe erstellt! ✨';
+    document.getElementById('success-message').textContent = count > 1
+      ? `${count} Einträge wurden erfolgreich in Notion gespeichert.`
+      : 'Dein Eintrag wurde erfolgreich in Notion gespeichert.';
+
+    // Render links
+    successLinks.innerHTML = '';
+    data.results.forEach(result => {
+      if (result.notionUrl) {
+        const link = document.createElement('a');
+        link.className = 'success-link';
+        link.href = result.notionUrl;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          ${result.aufgabenName}
+        `;
+        successLinks.appendChild(link);
+      }
+    });
 
     successSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    showToast('Aufgabe in Notion erstellt! ✨', 'success');
+    showToast(count > 1 ? `${count} Aufgaben in Notion erstellt! ✨` : 'Aufgabe in Notion erstellt! ✨', 'success');
 
   } catch (err) {
     showToast('Fehler: ' + err.message, 'error');
   } finally {
     btnSendNotion.disabled = false;
     btnSendNotion.classList.remove('sending');
-    sendBtnText.textContent = 'An Notion senden';
+    sendBtnText.textContent = currentEntries.length > 1
+      ? `Alle ${currentEntries.length} an Notion senden`
+      : 'An Notion senden';
   }
 });
 
 // ---- New Entry ----
 function resetAll() {
-  currentEntry = null;
+  currentEntries = [];
   transcriptBuffer = '';
   transcriptText.textContent = '';
   transcriptPreview.classList.remove('visible');

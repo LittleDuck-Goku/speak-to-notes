@@ -33,28 +33,33 @@ const GEMINI_MODELS = [
 ];
 
 function buildPrompt(text, currentDate) {
-  return `Du bist ein intelligenter Produktivitäts-Assistent. Deine Aufgabe ist es, unstrukturierten Text (oft per Spracheingabe diktiert) zu analysieren und in einen strukturierten Aufgaben-Eintrag umzuwandeln.
+  return `Du bist ein intelligenter Produktivitäts-Assistent. Deine Aufgabe ist es, unstrukturierten Text (oft per Spracheingabe diktiert) zu analysieren und in strukturierte Aufgaben-Einträge umzuwandeln.
 
 Das heutige Datum ist: ${currentDate}
 
-Analysiere den folgenden Text und extrahiere die Informationen für diese Datenbankfelder:
+WICHTIG: Der Text kann EINE oder MEHRERE Aufgaben enthalten. Erkenne alle einzelnen Aufgaben im Text und gib sie als Array zurück. Achte auf Signalwörter wie "und", "außerdem", "dann", "noch", Aufzählungen oder thematische Wechsel, die auf separate Aufgaben hindeuten.
+
+Analysiere den folgenden Text und extrahiere für JEDE erkannte Aufgabe die Informationen für diese Datenbankfelder:
 
 1. **Aufgaben Name**: Ein kurzer, prägnanter Titel (max. 5-7 Wörter)
 2. **Fälligkeitsdatum**: Erkenne relative Zeitangaben (morgen, nächsten Dienstag, etc.) und wandle sie in ISO 8601 Format um (YYYY-MM-DDTHH:MM:SS). Falls keine Uhrzeit erkannt wird, gib nur das Datum (YYYY-MM-DD). Falls kein Datum erkennbar ist, setze null.
-3. **Beschreibung**: Formuliere den gesamten Inhalt als sauberen, professionellen Fließtext um. Behebe Grammatikfehler, fülle logische Lücken sinnvoll auf.
+3. **Beschreibung**: Formuliere den Inhalt dieser Aufgabe als sauberen, professionellen Fließtext um. Behebe Grammatikfehler, fülle logische Lücken sinnvoll auf.
 4. **Priorität**: Bewerte die Dringlichkeit. Erlaubte Werte: "Hoch", "Mittel", "Niedrig". Falls nicht klar, setze "Mittel".
 5. **Aufwand**: Schätze den Zeitaufwand. Erlaubte Werte: "Wenig", "Mittel", "Hoch". Falls nicht klar, setze "Mittel".
 6. **Aufgaben Typ**: Wähle 1-2 passende Kategorien. Erlaubte Werte: "Arbeit", "Fitness", "Allgemein", "Studium", "Praktikum". Falls nicht klar, setze ["Allgemein"].
 
-Antworte NUR mit validem JSON in diesem exakten Format (keine Markdown-Codeblöcke, kein anderer Text):
-{
-  "aufgabenName": "string",
-  "faelligkeitsdatum": "string oder null",
-  "beschreibung": "string",
-  "prioritaet": "Hoch|Mittel|Niedrig",
-  "aufwand": "Wenig|Mittel|Hoch",
-  "aufgabenTyp": ["string"]
-}
+Antworte NUR mit validem JSON in diesem exakten Format (keine Markdown-Codeblöcke, kein anderer Text).
+Gib IMMER ein Array zurück — auch wenn es nur eine Aufgabe ist:
+[
+  {
+    "aufgabenName": "string",
+    "faelligkeitsdatum": "string oder null",
+    "beschreibung": "string",
+    "prioritaet": "Hoch|Mittel|Niedrig",
+    "aufwand": "Wenig|Mittel|Hoch",
+    "aufgabenTyp": ["string"]
+  }
+]
 
 Eingabetext: "${text.replace(/"/g, '\\"')}"`;
 }
@@ -99,29 +104,34 @@ app.post('/api/process', async (req, res) => {
     // Strip markdown code fences if present
     responseText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
-    let structured;
+    let parsed;
     try {
-      structured = JSON.parse(responseText);
+      parsed = JSON.parse(responseText);
     } catch (parseErr) {
       console.error('Gemini response parse error:', responseText);
       return res.status(500).json({ error: 'AI-Antwort konnte nicht verarbeitet werden.', raw: responseText });
     }
 
-    // Validate required fields
-    const validated = {
-      aufgabenName: structured.aufgabenName || 'Neue Aufgabe',
-      faelligkeitsdatum: structured.faelligkeitsdatum || null,
-      beschreibung: structured.beschreibung || '',
-      prioritaet: ['Hoch', 'Mittel', 'Niedrig'].includes(structured.prioritaet) ? structured.prioritaet : 'Mittel',
-      aufwand: ['Wenig', 'Mittel', 'Hoch'].includes(structured.aufwand) ? structured.aufwand : 'Mittel',
-      aufgabenTyp: Array.isArray(structured.aufgabenTyp) ? structured.aufgabenTyp.filter(t =>
-        ['Arbeit', 'Fitness', 'Allgemein', 'Studium', 'Praktikum'].includes(t)
-      ) : ['Allgemein']
-    };
+    // Normalize to array (backwards-compatible if model returns single object)
+    const items = Array.isArray(parsed) ? parsed : [parsed];
 
-    if (validated.aufgabenTyp.length === 0) validated.aufgabenTyp = ['Allgemein'];
+    // Validate each entry
+    const entries = items.map(structured => {
+      const validated = {
+        aufgabenName: structured.aufgabenName || 'Neue Aufgabe',
+        faelligkeitsdatum: structured.faelligkeitsdatum || null,
+        beschreibung: structured.beschreibung || '',
+        prioritaet: ['Hoch', 'Mittel', 'Niedrig'].includes(structured.prioritaet) ? structured.prioritaet : 'Mittel',
+        aufwand: ['Wenig', 'Mittel', 'Hoch'].includes(structured.aufwand) ? structured.aufwand : 'Mittel',
+        aufgabenTyp: Array.isArray(structured.aufgabenTyp) ? structured.aufgabenTyp.filter(t =>
+          ['Arbeit', 'Fitness', 'Allgemein', 'Studium', 'Praktikum'].includes(t)
+        ) : ['Allgemein']
+      };
+      if (validated.aufgabenTyp.length === 0) validated.aufgabenTyp = ['Allgemein'];
+      return validated;
+    });
 
-    res.json({ success: true, entry: validated });
+    res.json({ success: true, entries });
 
   } catch (err) {
     console.error('Process error:', err.message);
@@ -136,52 +146,60 @@ app.post('/api/process', async (req, res) => {
   }
 });
 
-// --- Notion: Create page in Aufgaben database ---
+// --- Notion: Create page(s) in Aufgaben database ---
 app.post('/api/notion/create', async (req, res) => {
   try {
-    const { entry } = req.body;
+    const { entries } = req.body;
 
-    if (!entry) {
-      return res.status(400).json({ error: 'Kein Eintrag übergeben.' });
+    if (!entries || !Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ error: 'Keine Einträge übergeben.' });
     }
 
-    const properties = {
-      'Aufgaben Name': {
-        title: [{ text: { content: entry.aufgabenName } }]
-      },
-      'Beschreibung': {
-        rich_text: [{ text: { content: entry.beschreibung || '' } }]
-      },
-      'Priorität': {
-        select: { name: entry.prioritaet || 'Mittel' }
-      },
-      'Status': {
-        status: { name: 'Ausstehend' }
-      },
-      'Aufwand': {
-        select: { name: entry.aufwand || 'Mittel' }
-      },
-      'Aufgaben Typ': {
-        multi_select: (entry.aufgabenTyp || ['Allgemein']).map(t => ({ name: t }))
-      }
-    };
+    const results = [];
 
-    // Add date if present
-    if (entry.faelligkeitsdatum) {
-      properties['Fälligkeitsdatum'] = {
-        date: { start: entry.faelligkeitsdatum }
+    for (const entry of entries) {
+      const properties = {
+        'Aufgaben Name': {
+          title: [{ text: { content: entry.aufgabenName } }]
+        },
+        'Beschreibung': {
+          rich_text: [{ text: { content: entry.beschreibung || '' } }]
+        },
+        'Priorität': {
+          select: { name: entry.prioritaet || 'Mittel' }
+        },
+        'Status': {
+          status: { name: 'Ausstehend' }
+        },
+        'Aufwand': {
+          select: { name: entry.aufwand || 'Mittel' }
+        },
+        'Aufgaben Typ': {
+          multi_select: (entry.aufgabenTyp || ['Allgemein']).map(t => ({ name: t }))
+        }
       };
-    }
 
-    const notionResponse = await notion.pages.create({
-      parent: { database_id: DATABASE_ID },
-      properties
-    });
+      if (entry.faelligkeitsdatum) {
+        properties['Fälligkeitsdatum'] = {
+          date: { start: entry.faelligkeitsdatum }
+        };
+      }
+
+      const notionResponse = await notion.pages.create({
+        parent: { database_id: DATABASE_ID },
+        properties
+      });
+
+      results.push({
+        aufgabenName: entry.aufgabenName,
+        notionUrl: notionResponse.url,
+        pageId: notionResponse.id
+      });
+    }
 
     res.json({
       success: true,
-      notionUrl: notionResponse.url,
-      pageId: notionResponse.id
+      results
     });
 
   } catch (err) {

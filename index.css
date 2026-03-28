@@ -610,6 +610,64 @@ body {
   border: 1px solid rgba(192, 132, 252, 0.25);
 }
 
+/* --- Task Count Badge --- */
+.task-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* --- Multi-Task Cards --- */
+.output-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.output-task-card {
+  position: relative;
+  padding: var(--space-lg);
+  background: rgba(15, 15, 40, 0.5);
+  border: 1px solid rgba(120, 100, 255, 0.1);
+  border-radius: var(--radius-md);
+  animation: cardFadeIn var(--transition-slow) ease both;
+}
+
+.output-task-card + .output-task-card {
+  margin-top: var(--space-xs);
+}
+
+.output-task-card__number {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+/* --- Success Links --- */
+.success-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
 /* --- Output Buttons --- */
 .output-buttons {
   display: flex;
