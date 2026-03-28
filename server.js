@@ -59,6 +59,7 @@ Analysiere den folgenden Text und extrahiere für JEDE erkannte Aufgabe die Info
 4. **Priorität**: Bewerte die Dringlichkeit. Erlaubte Werte: "Hoch", "Mittel", "Niedrig". Falls nicht klar, setze "Mittel".
 5. **Aufwand**: Schätze den Zeitaufwand. Erlaubte Werte: "Wenig", "Mittel", "Hoch". Falls nicht klar, setze "Mittel".
 6. **Aufgaben Typ**: Wähle 1-2 passende Kategorien. Erlaubte Werte: "Arbeit", "Fitness", "Allgemein", "Studium", "Praktikum". Falls nicht klar, setze ["Allgemein"].
+7. **Emoji**: Wähle EIN passendes Emoji, das den Inhalt der Aufgabe visuell repräsentiert. Beispiele: Arbeit/Büro = "💼", Fitness/Sport = "🏋️", Meeting = "🤝", Studium/Lernen = "📚", Einkaufen = "🛒", Arzt = "🏥", Kochen = "🍳", Reise = "✈️", Putzen = "🧹", Anruf = "📞". Wähle kreativ und passend zum Aufgabeninhalt.
 
 Antworte NUR mit validem JSON in diesem exakten Format (keine Markdown-Codeblöcke, kein anderer Text).
 Gib IMMER ein Array zurück — auch wenn es nur eine Aufgabe ist:
@@ -69,7 +70,8 @@ Gib IMMER ein Array zurück — auch wenn es nur eine Aufgabe ist:
     "beschreibung": "string",
     "prioritaet": "Hoch|Mittel|Niedrig",
     "aufwand": "Wenig|Mittel|Hoch",
-    "aufgabenTyp": ["string"]
+    "aufgabenTyp": ["string"],
+    "emoji": "string"
   }
 ]
 
@@ -165,7 +167,8 @@ app.post('/api/process', async (req, res) => {
         aufwand: ['Wenig', 'Mittel', 'Hoch'].includes(structured.aufwand) ? structured.aufwand : 'Mittel',
         aufgabenTyp: Array.isArray(structured.aufgabenTyp) ? structured.aufgabenTyp.filter(t =>
           ['Arbeit', 'Fitness', 'Allgemein', 'Studium', 'Praktikum'].includes(t)
-        ) : ['Allgemein']
+        ) : ['Allgemein'],
+        emoji: structured.emoji || '📝'
       };
       if (validated.aufgabenTyp.length === 0) validated.aufgabenTyp = ['Allgemein'];
       return validated;
@@ -229,6 +232,7 @@ app.post('/api/notion/create', async (req, res) => {
 
       const notionResponse = await notion.pages.create({
         parent: { database_id: DATABASE_ID },
+        icon: { type: 'emoji', emoji: entry.emoji || '📝' },
         properties
       });
 

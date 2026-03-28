@@ -211,7 +211,7 @@ function renderAllEntries(entries) {
       <div class="output-content">
         <div class="output-field">
           <label class="output-field__label">Aufgaben Name</label>
-          <div class="output-field__value output-field__value--title">${entry.aufgabenName || 'Neue Aufgabe'}</div>
+          <div class="output-field__value output-field__value--title"><span class="output-emoji">${entry.emoji || '📝'}</span> ${entry.aufgabenName || 'Neue Aufgabe'}</div>
         </div>
         <div class="output-field">
           <label class="output-field__label">Fälligkeitsdatum</label>
