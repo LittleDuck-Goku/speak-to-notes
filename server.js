@@ -101,6 +101,21 @@ async function callGemini(prompt) {
   throw lastError;
 }
 
+// Append Europe/Berlin timezone offset to datetime strings that have a time but no timezone
+function appendTimezone(dateStr) {
+  if (!dateStr || !dateStr.includes('T')) return dateStr; // date-only, no timezone needed
+  if (dateStr.includes('+') || dateStr.includes('Z')) return dateStr; // already has timezone
+
+  // Determine if CET (+01:00) or CEST (+02:00) based on the date
+  const date = new Date(dateStr);
+  const month = date.getMonth(); // 0-indexed
+  // Rough CEST check: April(3) through October(9)
+  const isCEST = month >= 2 && month <= 9; // March-October (close enough for DST)
+  const offset = isCEST ? '+02:00' : '+01:00';
+
+  return dateStr + offset;
+}
+
 // --- Gemini AI: Process raw text into structured entry ---
 app.post('/api/process', async (req, res) => {
   try {
@@ -133,9 +148,12 @@ app.post('/api/process', async (req, res) => {
       let dateParsed = null;
       if (structured.faelligkeitsdatum) {
         if (typeof structured.faelligkeitsdatum === 'string') {
-          dateParsed = { start: structured.faelligkeitsdatum, end: null };
+          dateParsed = { start: appendTimezone(structured.faelligkeitsdatum), end: null };
         } else if (structured.faelligkeitsdatum.start) {
-          dateParsed = { start: structured.faelligkeitsdatum.start, end: structured.faelligkeitsdatum.end || null };
+          dateParsed = {
+            start: appendTimezone(structured.faelligkeitsdatum.start),
+            end: structured.faelligkeitsdatum.end ? appendTimezone(structured.faelligkeitsdatum.end) : null
+          };
         }
       }
 
