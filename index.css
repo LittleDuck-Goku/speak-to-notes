@@ -522,6 +522,12 @@ body {
   background-clip: text;
 }
 
+.output-emoji {
+  -webkit-text-fill-color: initial;
+  font-size: 1.3em;
+  margin-right: 4px;
+}
+
 .output-field__value--desc {
   white-space: pre-wrap;
 }
