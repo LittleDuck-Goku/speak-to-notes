@@ -39,10 +39,17 @@ Das heutige Datum ist: ${currentDate}
 
 WICHTIG: Der Text kann EINE oder MEHRERE Aufgaben enthalten. Erkenne alle einzelnen Aufgaben im Text und gib sie als Array zurück. Achte auf Signalwörter wie "und", "außerdem", "dann", "noch", Aufzählungen oder thematische Wechsel, die auf separate Aufgaben hindeuten.
 
+SEHR WICHTIG — ZEITEN KORREKT ZUORDNEN:
+- Jede Aufgabe hat ihre EIGENEN Zeitangaben. Übertrage NIEMALS Zeiten von einer Aufgabe auf eine andere.
+- Lies den Text Schritt für Schritt durch und ordne jeder Aufgabe NUR die Zeiten zu, die direkt bei ihr genannt werden.
+- Verwende IMMER das 24-Stunden-Format (z.B. 09:00, 14:30, 17:30). Wandle NIEMALS in AM/PM um.
+- "9 Uhr" = 09:00, "halb 6" = 17:30, "3 Uhr nachmittags" = 15:00
+- Wenn der Nutzer sagt "von X bis Y Uhr", dann ist X die Startzeit und Y die Endzeit für GENAU DIESE eine Aufgabe.
+
 Analysiere den folgenden Text und extrahiere für JEDE erkannte Aufgabe die Informationen für diese Datenbankfelder:
 
 1. **Aufgaben Name**: Ein kurzer, prägnanter Titel (max. 5-7 Wörter)
-2. **Fälligkeitsdatum**: Erkenne relative Zeitangaben (morgen, nächsten Dienstag, etc.) und wandle sie in ISO 8601 Format um (YYYY-MM-DDTHH:MM:SS). Falls keine Uhrzeit erkannt wird, gib nur das Datum (YYYY-MM-DD). Falls kein Datum erkennbar ist, setze null. Falls ein Zeitraum erkannt wird (z.B. "von 9 bis 17:30 Uhr"), gib sowohl "start" als auch "end" an.
+2. **Fälligkeitsdatum**: Erkenne relative Zeitangaben (morgen, nächsten Dienstag, etc.) und wandle sie in ISO 8601 Format um. Verwende 24h-Format (YYYY-MM-DDTHH:MM:SS). Falls keine Uhrzeit erkannt wird, gib nur das Datum (YYYY-MM-DD). Falls kein Datum erkennbar ist, setze null. Falls ein Zeitraum erkannt wird (z.B. "von 9 bis 17:30 Uhr"), gib sowohl "start" als auch "end" an.
    - Nur Startzeit: faelligkeitsdatum: { "start": "YYYY-MM-DDTHH:MM:SS" }
    - Zeitraum: faelligkeitsdatum: { "start": "YYYY-MM-DDTHH:MM:SS", "end": "YYYY-MM-DDTHH:MM:SS" }
    - Nur Datum: faelligkeitsdatum: { "start": "YYYY-MM-DD" }
