@@ -183,20 +183,20 @@ function renderAllEntries(entries) {
     sendBtnText.textContent = 'An Notion senden';
   }
 
+  const allTaskTypes = ['Arbeit', 'Fitness', 'Allgemein', 'Studium', 'Praktikum'];
+
   entries.forEach((entry, index) => {
     const card = document.createElement('div');
     card.className = 'output-task-card';
     if (entries.length > 1) card.style.animationDelay = `${index * 100}ms`;
 
-    // Build tags HTML
-    let tagsHtml = '';
-    if (entry.aufgabenTyp && entry.aufgabenTyp.length > 0) {
-      tagsHtml = entry.aufgabenTyp
-        .map(tag => `<span class="tag tag--${tag.toLowerCase()}">${tag}</span>`)
-        .join('');
-    } else {
-      tagsHtml = '<span class="output-field__not-specified">Keine Tags</span>';
-    }
+    // Build tags HTML with toggleable buttons
+    const tagsHtml = allTaskTypes
+      .map(tag => {
+        const isActive = entry.aufgabenTyp && entry.aufgabenTyp.includes(tag);
+        return `<button type="button" class="tag tag--${tag.toLowerCase()} tag--toggle ${isActive ? 'tag--active' : ''}" data-index="${index}" data-tag="${tag}">${tag}</button>`;
+      })
+      .join('');
 
     // Build date HTML
     let dateHtml;
@@ -206,12 +206,25 @@ function renderAllEntries(entries) {
       dateHtml = '<span class="output-field__not-specified">Nicht angegeben</span>';
     }
 
+    // Build priority options
+    const priorityOptions = ['Hoch', 'Mittel', 'Niedrig'].map(p =>
+      `<option value="${p}" ${entry.prioritaet === p ? 'selected' : ''}>${p}</option>`
+    ).join('');
+
+    // Build effort options
+    const effortOptions = ['Wenig', 'Mittel', 'Hoch'].map(a =>
+      `<option value="${a}" ${entry.aufwand === a ? 'selected' : ''}>${a}</option>`
+    ).join('');
+
     card.innerHTML = `
       ${entries.length > 1 ? `<div class="output-task-card__number">${index + 1}</div>` : ''}
       <div class="output-content">
         <div class="output-field">
           <label class="output-field__label">Aufgaben Name</label>
-          <div class="output-field__value output-field__value--title"><span class="output-emoji">${entry.emoji || '📝'}</span> ${entry.aufgabenName || 'Neue Aufgabe'}</div>
+          <div class="output-field__value output-field__value--title-wrap">
+            <span class="output-emoji">${entry.emoji || '📝'}</span>
+            <input type="text" class="edit-input edit-input--title" data-index="${index}" data-field="aufgabenName" value="${(entry.aufgabenName || 'Neue Aufgabe').replace(/"/g, '&quot;')}" />
+          </div>
         </div>
         <div class="output-field">
           <label class="output-field__label">Fälligkeitsdatum</label>
@@ -219,16 +232,20 @@ function renderAllEntries(entries) {
         </div>
         <div class="output-field">
           <label class="output-field__label">Beschreibung</label>
-          <div class="output-field__value output-field__value--desc">${entry.beschreibung || 'Keine Beschreibung.'}</div>
+          <textarea class="edit-input edit-input--desc" data-index="${index}" data-field="beschreibung" rows="3">${entry.beschreibung || ''}</textarea>
         </div>
         <div class="output-row">
           <div class="output-field output-field--half">
             <label class="output-field__label">Priorität</label>
-            <div class="output-field__value"><span class="badge badge--${entry.prioritaet.toLowerCase()}">${entry.prioritaet}</span></div>
+            <select class="edit-select edit-select--prioritaet" data-index="${index}" data-field="prioritaet">
+              ${priorityOptions}
+            </select>
           </div>
           <div class="output-field output-field--half">
             <label class="output-field__label">Aufwand</label>
-            <div class="output-field__value"><span class="badge badge--${entry.aufwand.toLowerCase()}">${entry.aufwand}</span></div>
+            <select class="edit-select edit-select--aufwand" data-index="${index}" data-field="aufwand">
+              ${effortOptions}
+            </select>
           </div>
         </div>
         <div class="output-field">
@@ -239,6 +256,38 @@ function renderAllEntries(entries) {
     `;
 
     outputTasks.appendChild(card);
+  });
+
+  // Attach event listeners for editable fields
+  outputTasks.querySelectorAll('.edit-input, .edit-input--desc').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const i = parseInt(e.target.dataset.index);
+      currentEntries[i][e.target.dataset.field] = e.target.value;
+    });
+  });
+
+  outputTasks.querySelectorAll('.edit-select').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const i = parseInt(e.target.dataset.index);
+      currentEntries[i][e.target.dataset.field] = e.target.value;
+    });
+  });
+
+  outputTasks.querySelectorAll('.tag--toggle').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const i = parseInt(e.target.dataset.index);
+      const tag = e.target.dataset.tag;
+      const types = currentEntries[i].aufgabenTyp;
+      if (types.includes(tag)) {
+        if (types.length > 1) {
+          currentEntries[i].aufgabenTyp = types.filter(t => t !== tag);
+          e.target.classList.remove('tag--active');
+        }
+      } else {
+        types.push(tag);
+        e.target.classList.add('tag--active');
+      }
+    });
   });
 }
 
